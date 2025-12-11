@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fake Bank - Secure Payment</title>
+    <!-- We'll use Tailwind CSS for styling to keep it simple -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* A simple loader */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen font-sans">
+
+<div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+
+    <!-- Header -->
+    <div class="text-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-800">FakeBank Secure Payment</h1>
+        <p class="text-gray-500">You are paying: <span class="font-semibold text-blue-600">My Spring Boot App</span></p>
+    </div>
+
+    <!-- Payment Details -->
+    <div class="mb-6">
+        <div class="bg-blue-50 p-4 rounded-lg text-center">
+            <p class="text-sm text-gray-600">Total Amount</p>
+            <p id="amount-display" class="text-4xl font-bold text-gray-900">$0.00</p>
+        </div>
+    </div>
+
+    <!-- "Fake" Credit Card Form (Visual Only) -->
+    <div class="mb-6 space-y-4">
+        <div>
+            <label for="card" class="block text-sm font-medium text-gray-700">Card Number</label>
+            <input type="text" id="card" value="**** **** **** 4242" disabled class="mt-1 block w-full p-3 bg-gray-100 border border-gray-300 rounded-md shadow-sm">
+        </div>
+        <div class="flex space-x-4">
+            <div class="w-1/2">
+                <label for="expiry" class="block text-sm font-medium text-gray-700">Expiry</Flabel>
+                    <input type="text" id="expiry" value="12 / 28" disabled class="mt-1 block w-full p-3 bg-gray-100 border border-gray-300 rounded-md shadow-sm">
+            </div>
+            <div class="w-1/2">
+                <label for="cvc" class="block text-sm font-medium text-gray-700">CVC</label>
+                <input type="text" id="cvc" value="***" disabled class="mt-1 block w-full p-3 bg-gray-100 border border-gray-300 rounded-md shadow-sm">
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Button -->
+    <button id="confirm-payment-btn" class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 transition duration-300">
+        Confirm Payment
+    </button>
+
+    <!-- Loading Spinner (Hidden by default) -->
+    <div id="loader" class="hidden flex justify-center items-center mt-6">
+        <div class="loader"></div>
+        <p class="ml-4 text-gray-600">Processing payment...</p>
+    </div>
+
+    <!-- Error Message (Hidden by default) -->
+    <div id="error-message" class="hidden mt-4 p-3 bg-red-100 text-red-700 rounded-lg text-center">
+        Payment failed. Please try again.
+    </div>
+</div>
+
+<script>
+    // Get the URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const studentId = urlParams.get('studentId');
+    const amount = parseFloat(urlParams.get('amount')); // Convert string to number
+
+    // Find our HTML elements
+    const amountDisplay = document.getElementById('amount-display');
+    const confirmBtn = document.getElementById('confirm-payment-btn');
+    const loader = document.getElementById('loader');
+    const errorMessage = document.getElementById('error-message');
+
+    // Update the amount on the page
+    if (amount) {
+        amountDisplay.textContent = `$${amount.toFixed(2)}`;
+    }
+
+    // Add click listener to the payment button
+    confirmBtn.addEventListener('click', () => {
+        // Show loader, hide button
+        loader.classList.remove('hidden');
+        confirmBtn.classList.add('hidden');
+        errorMessage.classList.add('hidden');
+
+        // --- THIS IS THE "FAKE WEBHOOK" CALL ---
+        // This is the "bank" (this page) secretly calling your server's
+        // /wallet/payment-webhook endpoint to confirm the payment.
+        fetch('/wallet/payment-webhook', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                studentId: studentId,
+                amount: amount
+            })
+        })
+        .then(response => {
+            if (response.ok) {
+                // --- SUCCESS ---
+                // The "bank" has told your server the payment is good.
+                // Now, send the user back to the main page.
+                // We add a success message to the URL.
+                window.location.href = `/index.html?payment=success&amount=${amount}`;
+            } else {
+                // --- FAILURE ---
+                // The webhook call failed (e.g., server was down)
+                throw new Error('Webhook failed');
+            }
+        })
+        .catch(err => {
+            // Show the error message, hide the loader, and show the button again
+            loader.classList.add('hidden');
+            confirmBtn.classList.remove('hidden');
+            errorMessage.classList.remove('hidden');
+            console.error('Payment processing error:', err);
+        });
+    });
+</script>
+
+</body>
+</html>
