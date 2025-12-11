@@ -44,13 +44,14 @@ public class StudentController {
 
     @GetMapping("/download")
     public void downloadExcelFile(HttpServletResponse response) throws IOException {
-        // 1. Set the response headers for file download
+
+
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         String headerKey = "Content-Disposition";
         String headerValue = "attachment; filename=students_export.xlsx";
         response.setHeader(headerKey, headerValue);
 
-        // 2. Call the service to write the Excel file to the response
+
         studentService.writeStudentsToExcel(response);
     }
 
